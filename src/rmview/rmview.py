@@ -3,7 +3,7 @@ from PyQt5.QtWidgets import *
 from PyQt5.QtCore import *
 
 from . import resources
-from .workers import FrameBufferWorker, PointerWorker
+from .workers import FrameBufferWorker, PointerWorker, ButtonWorker
 from .connection import rMConnect, RejectNewHostKey, AddNewHostKey, UnknownHostKeyException
 from .viewer import QtImageViewer
 
@@ -286,6 +286,10 @@ class rMViewApp(QApplication):
     self.fbworker.signals.onFatalError.connect(self.frameError)
     self.threadpool.start(self.fbworker)
 
+    self.buttonworker = ButtonWorker(ssh)
+    self.threadpool.start(self.buttonworker)
+    self.buttonworker.signals.onButtonPress.connect(self.turnPage)
+
     self.penworker = PointerWorker(ssh, path="/dev/input/event%d" % (version-1))
     self.threadpool.start(self.penworker)
     self.pen = self.viewer.scene.addEllipse(0,0,self.pen_size,self.pen_size,
@@ -308,6 +312,10 @@ class rMViewApp(QApplication):
       self.detectOrientation(image)
       self.orient = False
     self.viewer.setImage(image)
+
+  @pyqtSlot()
+  def turnPage(self):
+      self.viewer.turnPage()
 
   @pyqtSlot()
   def hidePen(self):

@@ -197,5 +197,39 @@ class PointerWorker(QRunnable):
         else:
           self.signals.onPenNear.emit()
 
+class BWSignals(QObject):
+  onFatalError = pyqtSignal(Exception)
+  onButtonPress = pyqtSignal()
 
+class ButtonWorker(QRunnable):
 
+  _stop = False
+
+  def __init__(self, ssh, path="/dev/input/event2"):
+    super(ButtonWorker, self).__init__()
+    self.event = path
+    self.ssh = ssh
+    self.signals = BWSignals()
+
+  def stop(self):
+    self._kill.write('\n')
+    self._stop = True
+
+  @pyqtSlot()
+  def run(self):
+    kill, stream, _ = self.ssh.exec_command('cat %s & { read ; kill %%1; }' % self.event)
+    self._kill = kill
+    new_x = new_y = False
+    state = LIFTED
+
+    while not self._stop:
+      try:
+        _, _, e_type, e_code, e_value = struct.unpack('2IHHi', stream.read(16))
+      except struct.error:
+        return
+      except Exception as e:
+        log.error('Error in button worker: %s %s', type(e), e)
+        return
+
+      if e_type == e_type_key and e_value == 1:
+        self.signals.onButtonPress.emit()

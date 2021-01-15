@@ -16,6 +16,8 @@ class QtImageViewer(QGraphicsView):
     self.setScene(self.scene)
 
     self._pixmap = None
+    self._leftpixmap = None
+    self._leftpixmapbuffer = None
     self.aspectRatioMode = Qt.KeepAspectRatio
     self.setHorizontalScrollBarPolicy(Qt.ScrollBarAsNeeded)
     self.setVerticalScrollBarPolicy(Qt.ScrollBarAsNeeded)
@@ -69,6 +71,10 @@ class QtImageViewer(QGraphicsView):
     if self.hasImage():
       self.scene.removeItem(self._pixmap)
       self._pixmap = None
+    if self._leftpixmap is not None:
+      self.scene.removeItem(self._leftpixmap)
+      self._leftpixmap = None
+    self._leftpixmapbuffer = None
 
   def pixmap(self):
     if self.hasImage():
@@ -89,13 +95,28 @@ class QtImageViewer(QGraphicsView):
       raise RuntimeError("ImageViewer.setImage: Argument must be a QImage or QPixmap.")
     if self.hasImage():
       self._pixmap.setPixmap(pixmap)
+      if self._leftpixmapbuffer is not None:
+        if self._leftpixmap is not None:
+          self._leftpixmap.setPixmap(self._leftpixmapbuffer)
+        else:
+          self._leftpixmap = self.scene.addPixmap(self._leftpixmapbuffer)
+          self._leftpixmap.setZValue(-1)
+          self._leftpixmap.setTransformationMode(Qt.SmoothTransformation)
+          self._pixmap.setOffset(self._leftpixmap.boundingRect().topRight())
+          self.setSceneRect(QRectF(self._leftpixmap.boundingRect().united(self._pixmap.boundingRect())))
+        self.leftpixmapbuffer = None
     else:
       self._pixmap = self.scene.addPixmap(pixmap)
       self._pixmap.setZValue(-1)
-    self._pixmap.setTransformationMode(Qt.SmoothTransformation)
-    self.setSceneRect(QRectF(pixmap.rect()))  # Set scene size to image size.
+      self._pixmap.setTransformationMode(Qt.SmoothTransformation)
+      self.setSceneRect(QRectF(pixmap.rect()))  # Set scene size to image size.
     # self.fitInView(self.sceneRect(), self.aspectRatioMode)  # Show entire image (use current aspect ratio mode).
     self.updateViewer()
+
+  def turnPage(self):
+    if not self.hasImage():
+      return
+    self._leftpixmapbuffer = self.pixmap()
 
   def updateViewer(self):
     if self.hasImage() is None:
