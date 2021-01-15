@@ -65,6 +65,11 @@ class rMConnect(QRunnable):
                onConnect=None, onError=None, host_key_policy=None, known_hosts=None, **kwargs):
     super(rMConnect, self).__init__()
     self.address = address
+    try:
+        cfg = paramiko.SSHConfig.from_path(os.environ['HOME'] + '/.ssh/config')
+        self.address = cfg.lookup(address)["hostname"]
+    except FileNotFoundError:
+        pass
     self.signals = rMConnectSignals()
     if callable(onConnect):
       self.signals.onConnect.connect(onConnect)
