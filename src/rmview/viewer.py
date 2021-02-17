@@ -102,7 +102,9 @@ class QtImageViewer(QGraphicsView):
           self._leftpixmap = self.scene.addPixmap(self._leftpixmapbuffer)
           self._leftpixmap.setZValue(-1)
           self._leftpixmap.setTransformationMode(Qt.SmoothTransformation)
-          self._pixmap.setOffset(self._leftpixmap.boundingRect().topRight())
+          offset = self._leftpixmap.boundingRect().topRight()
+          offset.setX(offset.x() + 10)
+          self._pixmap.setOffset(offset)
           self.setSceneRect(QRectF(self._leftpixmap.boundingRect().united(self._pixmap.boundingRect())))
         self.leftpixmapbuffer = None
     else:
