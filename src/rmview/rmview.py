@@ -290,6 +290,9 @@ class rMViewApp(QApplication):
     self.threadpool.start(self.buttonworker)
     self.buttonworker.signals.onButtonPress.connect(self.turnPage)
 
+    self.viewer.scene.sceneRectChanged.connect(self.updateViewerWidth)
+    self.updateViewerWidth()
+
     self.penworker = PointerWorker(ssh, path="/dev/input/event%d" % (version-1))
     self.threadpool.start(self.penworker)
     self.pen = self.viewer.scene.addEllipse(0,0,self.pen_size,self.pen_size,
@@ -305,6 +308,9 @@ class rMViewApp(QApplication):
     self.penworker.signals.onPenNear.connect(self.showPen)
     self.penworker.signals.onPenFar.connect(self.hidePen)
 
+  @pyqtSlot()
+  def updateViewerWidth(self):
+    self.viewerWidth = self.viewer.scene.width() or 0
 
   @pyqtSlot(QImage)
   def onNewFrame(self, image):
@@ -315,7 +321,7 @@ class rMViewApp(QApplication):
 
   @pyqtSlot()
   def turnPage(self):
-      self.viewer.turnPage()
+    self.viewer.turnPage()
 
   @pyqtSlot()
   def hidePen(self):
@@ -332,10 +338,12 @@ class rMViewApp(QApplication):
   @pyqtSlot(int, int)
   def movePen(self, x, y):
     y = 20951 - y
+    x = 15725 - x
     ratio_width, ratio_height = WIDTH / 15725, HEIGHT / 20951
     scaling = ratio_width if ratio_width > ratio_height else ratio_height
     x = scaling * (x - (15725 - WIDTH / scaling) / 2)
     y = scaling * (y - (20951 - HEIGHT / scaling) / 2)
+    x = self.viewerWidth - x
     if self.trail is not None:
       if self.trail is False:
         self.trail = True
